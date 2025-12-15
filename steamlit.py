@@ -1716,6 +1716,43 @@ class AplikasiManajemenMahasiswa:
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
+        /* PERUBAHAN: Input text color to black */
+        .stTextInput > div > div > input,
+        .stSelectbox > div > div > select,
+        .stTextArea > div > div > textarea,
+        .stNumberInput > div > div > input {
+            color: #000000 !important;  /* Warna hitam */
+        }
+        
+        /* PERUBAHAN: Placeholder color */
+        .stTextInput input::placeholder,
+        .stTextArea textarea::placeholder {
+            color: #666666 !important;  /* Warna abu-abu gelap untuk placeholder */
+        }
+        
+        /* PERUBAHAN: Text color for labels */
+        .stTextInput label,
+        .stSelectbox label,
+        .stTextArea label,
+        .stNumberInput label,
+        .stRadio label,
+        .stCheckbox label {
+            color: #000000 !important;  /* Warna hitam untuk label */
+        }
+        
+        /* PERUBAHAN: Login form input text color */
+        .glass-form input {
+            color: #000000 !important;
+        }
+        
+        .glass-form input::placeholder {
+            color: #666666 !important;
+        }
+        
+        .glass-form label {
+            color: #000000 !important;
+        }
+        
         /* Header styling */
         .main-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1861,7 +1898,7 @@ class AplikasiManajemenMahasiswa:
         
         /* Login card */
         .glass-card {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.95); /* PERUBAHAN: lebih opaque untuk kontras */
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 2rem;
@@ -1872,27 +1909,30 @@ class AplikasiManajemenMahasiswa:
         
         .login-card {
             text-align: center;
-            color: white;
+            color: #000000; /* PERUBAHAN: warna hitam */
         }
         
         .login-header h1 {
             font-size: 3.5rem;
             margin-bottom: 0.5rem;
+            color: #000000; /* PERUBAHAN: warna hitam */
         }
         
         .login-header h2 {
             font-size: 1.8rem;
             margin-bottom: 0.5rem;
             font-weight: 600;
+            color: #000000; /* PERUBAHAN: warna hitam */
         }
         
         .login-header p {
             opacity: 0.9;
             font-size: 1rem;
+            color: #333333; /* PERUBAHAN: warna abu-abu gelap */
         }
         
         .glass-form {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98); /* PERUBAHAN: lebih solid */
             border-radius: 15px;
             padding: 2rem;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
@@ -1900,13 +1940,13 @@ class AplikasiManajemenMahasiswa:
         
         /* Stats card di login */
         .stats-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.95); /* PERUBAHAN: lebih solid */
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 1.5rem;
             margin-top: 2rem;
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #000000; /* PERUBAHAN: warna hitam */
+            border: 1px solid rgba(0, 0, 0, 0.1); /* PERUBAHAN: border lebih gelap */
         }
         
         .stat-item {
@@ -1922,10 +1962,16 @@ class AplikasiManajemenMahasiswa:
         
         .stat-icon {
             font-size: 1.5rem;
+            color: #000000; /* PERUBAHAN: warna hitam */
         }
         
         .stat-text {
             font-size: 0.95rem;
+            color: #000000; /* PERUBAHAN: warna hitam */
+        }
+        
+        .stat-text strong {
+            color: #4361EE; /* Warna biru untuk emphasis */
         }
         
         /* Result card untuk pencarian */
@@ -2055,6 +2101,11 @@ class AplikasiManajemenMahasiswa:
             font-size: 1.5rem;
         }
         
+        /* PERUBAHAN: Radio button di sidebar tetap putih */
+        [data-testid="stSidebar"] .stRadio span {
+            color: white !important;
+        }
+        
         /* Button styling */
         .stButton > button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2073,6 +2124,11 @@ class AplikasiManajemenMahasiswa:
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
         
+        /* PERUBAHAN: Button text tetap putih */
+        .stButton > button span {
+            color: white !important;
+        }
+        
         /* Input styling */
         .stTextInput > div > div > input,
         .stSelectbox > div > div > select {
@@ -2082,6 +2138,7 @@ class AplikasiManajemenMahasiswa:
             padding: 0.75rem 1rem !important;
             font-size: 0.95rem !important;
             transition: border-color 0.3s ease !important;
+            color: #000000 !important; /* PERUBAHAN: tambahan untuk memastikan warna hitam */
         }
         
         .stTextInput > div > div > input:focus,
