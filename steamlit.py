@@ -11,16 +11,22 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Tuple
 import hashlib
 import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 # KELAS DASAR & ENKAPSULASI
 
 class Mahasiswa:
     """Kelas untuk merepresentasikan data mahasiswa dengan enkapsulasi"""
-    def __init__(self, nim: str, nama: str, jurusan: str = "Teknik Informatika", angkatan: str = "2024"):
+    def __init__(self, nim: str, nama: str, jurusan: str = "Teknik Informatika", angkatan: str = "2024", email: str = ""):
         self.__nim = nim  # Private attribute
         self.__nama = nama  # Private attribute
         self.__jurusan = jurusan  # Private attribute
         self.__angkatan = angkatan  # Private attribute
+        self.__email = email  # Private attribute
     
     # Getter methods
     @property
@@ -38,6 +44,10 @@ class Mahasiswa:
     @property
     def angkatan(self) -> str:
         return self.__angkatan
+    
+    @property
+    def email(self) -> str:
+        return self.__email
     
     # Setter methods
     @nim.setter
@@ -62,6 +72,13 @@ class Mahasiswa:
     def angkatan(self, angkatan: str):
         self.__angkatan = angkatan
     
+    @email.setter
+    def email(self, email: str):
+        if self._validasi_email(email):
+            self.__email = email
+        else:
+            raise ValueError("Email tidak valid")
+    
     # Validasi private methods
     def _validasi_nim(self, nim: str) -> bool:
         """Validasi NIM menggunakan regex"""
@@ -73,13 +90,21 @@ class Mahasiswa:
         pattern = r'^[A-Za-z\s\.\,]{3,50}$'
         return bool(re.match(pattern, nama))
     
+    def _validasi_email(self, email: str) -> bool:
+        """Validasi email menggunakan regex"""
+        if not email:  # Email boleh kosong
+            return True
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return bool(re.match(pattern, email))
+    
     def to_dict(self) -> Dict:
         """Mengembalikan data mahasiswa sebagai dictionary"""
         return {
             'nim': self.__nim,
             'nama': self.__nama,
             'jurusan': self.__jurusan,
-            'angkatan': self.__angkatan
+            'angkatan': self.__angkatan,
+            'email': self.__email
         }
     
     def __str__(self) -> str:
@@ -204,6 +229,8 @@ class AlgoritmaPencarian:
                 hasil.append(m)
             elif by == 'nim' and keyword in m.nim:
                 hasil.append(m)
+            elif by == 'email' and keyword.lower() in m.email.lower():
+                hasil.append(m)
         return hasil
     
     @staticmethod
@@ -239,7 +266,7 @@ class AlgoritmaPencarian:
         n = len(data)
         
         while i < n:
-            if keyword.lower() in data[i].nama.lower() or keyword in data[i].nim:
+            if keyword.lower() in data[i].nama.lower() or keyword in data[i].nim or keyword.lower() in data[i].email.lower():
                 hasil.append(data[i])
             i += 1
         return hasil
@@ -264,8 +291,10 @@ class AlgoritmaPengurutan:
             for j in range(0, n - i - 1):
                 if by == 'nim':
                     condition = data_copy[j].nim > data_copy[j + 1].nim if ascending else data_copy[j].nim < data_copy[j + 1].nim
-                else:  # by == 'nama'
+                elif by == 'nama':
                     condition = data_copy[j].nama > data_copy[j + 1].nama if ascending else data_copy[j].nama < data_copy[j + 1].nama
+                else:  # by == 'email'
+                    condition = data_copy[j].email > data_copy[j + 1].email if ascending else data_copy[j].email < data_copy[j + 1].email
                 
                 if condition:
                     data_copy[j], data_copy[j + 1] = data_copy[j + 1], data_copy[j]
@@ -286,8 +315,10 @@ class AlgoritmaPengurutan:
             for j in range(i + 1, n):
                 if by == 'nim':
                     condition = data_copy[j].nim < data_copy[min_idx].nim if ascending else data_copy[j].nim > data_copy[min_idx].nim
-                else:  # by == 'nama'
+                elif by == 'nama':
                     condition = data_copy[j].nama < data_copy[min_idx].nama if ascending else data_copy[j].nama > data_copy[min_idx].nama
+                else:  # by == 'email'
+                    condition = data_copy[j].email < data_copy[min_idx].email if ascending else data_copy[j].email > data_copy[min_idx].email
                 
                 if condition:
                     min_idx = j
@@ -311,8 +342,10 @@ class AlgoritmaPengurutan:
             while j >= 0:
                 if by == 'nim':
                     condition = data_copy[j].nim > key.nim if ascending else data_copy[j].nim < key.nim
-                else:  # by == 'nama'
+                elif by == 'nama':
                     condition = data_copy[j].nama > key.nama if ascending else data_copy[j].nama < key.nama
+                else:  # by == 'email'
+                    condition = data_copy[j].email > key.email if ascending else data_copy[j].email < key.email
                 
                 if condition:
                     data_copy[j + 1] = data_copy[j]
@@ -348,8 +381,10 @@ class AlgoritmaPengurutan:
         while i < len(left) and j < len(right):
             if by == 'nim':
                 condition = left[i].nim < right[j].nim if ascending else left[i].nim > right[j].nim
-            else:  # by == 'nama'
+            elif by == 'nama':
                 condition = left[i].nama < right[j].nama if ascending else left[i].nama > right[j].nama
+            else:  # by == 'email'
+                condition = left[i].email < right[j].email if ascending else left[i].email > right[j].email
             
             if condition:
                 result.append(left[i])
@@ -380,8 +415,10 @@ class AlgoritmaPengurutan:
                 while j >= gap:
                     if by == 'nim':
                         condition = data_copy[j - gap].nim > temp.nim if ascending else data_copy[j - gap].nim < temp.nim
-                    else:  # by == 'nama'
+                    elif by == 'nama':
                         condition = data_copy[j - gap].nama > temp.nama if ascending else data_copy[j - gap].nama < temp.nama
+                    else:  # by == 'email'
+                        condition = data_copy[j - gap].email > temp.email if ascending else data_copy[j - gap].email < temp.email
                     
                     if condition:
                         data_copy[j] = data_copy[j - gap]
@@ -393,6 +430,243 @@ class AlgoritmaPengurutan:
             gap //= 2
         
         return data_copy
+
+# ==============================
+# EMAIL HANDLER
+# ==============================
+
+class EmailHandler:
+    """Kelas untuk menangani pengiriman email"""
+    
+    def __init__(self):
+        # Konfigurasi email (bisa disimpan di environment variables)
+        self.smtp_server = "smtp.gmail.com"
+        self.smtp_port = 587
+        self.sender_email = "your_email@gmail.com"  # Ganti dengan email Anda
+        self.sender_password = "your_password"  # Ganti dengan password/app password
+        
+    def kirim_email(self, penerima: str, subjek: str, isi: str, lampiran_path: str = None) -> bool:
+        """Mengirim email dengan atau tanpa lampiran"""
+        try:
+            # Buat pesan email
+            msg = MIMEMultipart()
+            msg['From'] = self.sender_email
+            msg['To'] = penerima
+            msg['Subject'] = subjek
+            
+            # Tambahkan isi email
+            msg.attach(MIMEText(isi, 'html'))
+            
+            # Tambahkan lampiran jika ada
+            if lampiran_path and os.path.exists(lampiran_path):
+                with open(lampiran_path, 'rb') as attachment:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(attachment.read())
+                    encoders.encode_base64(part)
+                    part.add_header(
+                        'Content-Disposition',
+                        f'attachment; filename={os.path.basename(lampiran_path)}'
+                    )
+                    msg.attach(part)
+            
+            # Kirim email
+            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+            server.starttls()
+            server.login(self.sender_email, self.sender_password)
+            server.send_message(msg)
+            server.quit()
+            
+            return True
+            
+        except Exception as e:
+            st.error(f"❌ Gagal mengirim email: {str(e)}")
+            return False
+    
+    def generate_html_report(self, data: List[Mahasiswa], judul: str = "Laporan Data Mahasiswa") -> str:
+        """Membuat laporan HTML dari data mahasiswa"""
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>{judul}</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 1000px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border-bottom: 3px solid #4361EE;
+                    padding-bottom: 20px;
+                }}
+                .header h1 {{
+                    color: #4361EE;
+                    margin-bottom: 10px;
+                }}
+                .info {{
+                    background-color: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                    border-left: 4px solid #4361EE;
+                }}
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                }}
+                th, td {{
+                    padding: 12px 15px;
+                    text-align: left;
+                    border-bottom: 1px solid #ddd;
+                }}
+                th {{
+                    background-color: #4361EE;
+                    color: white;
+                    font-weight: bold;
+                }}
+                tr:hover {{
+                    background-color: #f5f5f5;
+                }}
+                .statistics {{
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 15px;
+                    margin: 20px 0;
+                }}
+                .stat-card {{
+                    background: white;
+                    border-radius: 8px;
+                    padding: 15px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    text-align: center;
+                    border-top: 4px solid #4361EE;
+                }}
+                .stat-value {{
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #4361EE;
+                    margin: 10px 0;
+                }}
+                .stat-label {{
+                    color: #666;
+                    font-size: 14px;
+                }}
+                .footer {{
+                    text-align: center;
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    color: #777;
+                    font-size: 12px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>📊 {judul}</h1>
+                <p>Dibuat pada: {datetime.now().strftime('%d %B %Y, %H:%M:%S')}</p>
+            </div>
+            
+            <div class="info">
+                <p><strong>Total Data:</strong> {len(data)} mahasiswa</p>
+                <p><strong>Sistem:</strong> Aplikasi Manajemen Data Mahasiswa</p>
+                <p><strong>Versi:</strong> 1.0.0</p>
+            </div>
+        """
+        
+        # Tambahkan statistik
+        if data:
+            jurusan_count = len(set([m.jurusan for m in data]))
+            angkatan_count = len(set([m.nim[:4] for m in data if len(m.nim) >= 4]))
+            dengan_email = len([m for m in data if m.email])
+            
+            html_content += f"""
+            <div class="statistics">
+                <div class="stat-card">
+                    <div class="stat-value">{len(data)}</div>
+                    <div class="stat-label">Total Mahasiswa</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{jurusan_count}</div>
+                    <div class="stat-label">Jurusan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{dengan_email}</div>
+                    <div class="stat-label">Memiliki Email</div>
+                </div>
+            </div>
+            """
+        
+        # Tambahkan tabel data
+        html_content += """
+            <h2>📋 Data Mahasiswa</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>NIM</th>
+                        <th>Nama</th>
+                        <th>Jurusan</th>
+                        <th>Angkatan</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        for idx, m in enumerate(data, 1):
+            html_content += f"""
+                    <tr>
+                        <td>{idx}</td>
+                        <td>{m.nim}</td>
+                        <td>{m.nama}</td>
+                        <td>{m.jurusan}</td>
+                        <td>{m.angkatan}</td>
+                        <td>{m.email if m.email else '-'}</td>
+                    </tr>
+            """
+        
+        html_content += """
+                </tbody>
+            </table>
+            
+            <div class="footer">
+                <p>© 2024 Sistem Manajemen Data Mahasiswa. Semua hak dilindungi.</p>
+                <p>Laporan ini dihasilkan secara otomatis oleh sistem.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html_content
+    
+    def generate_csv_report(self, data: List[Mahasiswa], filename: str = "data_mahasiswa.csv") -> str:
+        """Membuat file CSV dari data mahasiswa"""
+        # Buat DataFrame
+        df_data = []
+        for m in data:
+            df_data.append({
+                'NIM': m.nim,
+                'Nama': m.nama,
+                'Jurusan': m.jurusan,
+                'Angkatan': m.angkatan,
+                'Email': m.email if m.email else ''
+            })
+        
+        df = pd.DataFrame(df_data)
+        
+        # Simpan ke file
+        csv_path = f"temp_{filename}"
+        df.to_csv(csv_path, index=False, encoding='utf-8')
+        
+        return csv_path
 
 # ==============================
 # FILE I/O OPERATIONS
@@ -429,7 +703,8 @@ class FileHandler:
                         nim=item['nim'],
                         nama=item['nama'],
                         jurusan=item.get('jurusan', 'Teknik Informatika'),
-                        angkatan=item.get('angkatan', '2024')
+                        angkatan=item.get('angkatan', '2024'),
+                        email=item.get('email', '')
                     )
                     data_mahasiswa.append(mahasiswa)
                 except Exception as e:
@@ -448,9 +723,7 @@ class AuthSystem:
     
     def __init__(self):
         self.__users = {
-            'admin': self._hash_password('admin123'),
-            'dosen': self._hash_password('dosen123'),
-            'mahasiswa': self._hash_password('mahasiswa123')
+            'dzaki ramadhan': self._hash_password('241011400097')
         }
     
     def _hash_password(self, password: str) -> str:
@@ -474,6 +747,7 @@ class AplikasiManajemenMahasiswa:
         self.manajemen = ManajemenMahasiswa()
         self.auth = AuthSystem()
         self.file_handler = FileHandler()
+        self.email_handler = EmailHandler()
         
         # Inisialisasi state session
         if 'logged_in' not in st.session_state:
@@ -547,13 +821,11 @@ class AplikasiManajemenMahasiswa:
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Demo accounts
-                with st.expander("📋 **Akun Demo**"):
+                with st.expander("📋 **Akun Resmi**"):
                     st.markdown("""
                     | Role | Username | Password |
                     |------|----------|----------|
-                    | Administrator | `admin` | `admin123` |
-                    | Dosen | `dosen` | `dosen123` |
-                    | Mahasiswa | `mahasiswa` | `mahasiswa123` |
+                    | Mahasiswa | `dzaki ramadhan` | `241011400097` |
                     """)
                 
                 # Stats
@@ -605,6 +877,7 @@ class AplikasiManajemenMahasiswa:
                 ("🔍 Pencarian", "pencarian"),
                 ("📈 Pengurutan", "pengurutan"),
                 ("📊 Visualisasi", "visualisasi"),
+                ("📧 Kirim Email", "email"),
                 ("ℹ️ Analisis Algoritma", "analisis"),
                 ("🚪 Logout", "logout")
             ]
@@ -663,6 +936,8 @@ class AplikasiManajemenMahasiswa:
             self._pengurutan_data()
         elif menu_key == "visualisasi":
             self._visualisasi_data()
+        elif menu_key == "email":
+            self._email_page()
         elif menu_key == "analisis":
             self._analisis_kompleksitas()
         elif menu_key == "logout":
@@ -770,7 +1045,8 @@ class AplikasiManajemenMahasiswa:
                             'NIM': m.nim,
                             'Nama': m.nama,
                             'Jurusan': m.jurusan,
-                            'Angkatan': m.nim[:4] if len(m.nim) >= 4 else 'N/A'
+                            'Angkatan': m.angkatan,
+                            'Email': m.email if m.email else '-'
                         })
                     
                     df = pd.DataFrame(df_data)
@@ -793,6 +1069,9 @@ class AplikasiManajemenMahasiswa:
         colors = ["#4CC9F0", "#4361EE", "#3A0CA3", "#7209B7", "#F72585"]
         color = random.choice(colors)
         
+        # Tambahkan email jika ada
+        email_info = f"<p style='color: #000000;'><strong>📧 Email:</strong> {mahasiswa.email if mahasiswa.email else 'Tidak ada'}</p>" if mahasiswa.email else ""
+        
         st.markdown(f"""
         <div class="mahasiswa-card" style="border-left: 5px solid {color};">
             <div class="card-header">
@@ -800,9 +1079,10 @@ class AplikasiManajemenMahasiswa:
                 <span class="card-badge">{mahasiswa.jurusan[:3]}</span>
             </div>
             <div class="card-body">
-                <h4>{mahasiswa.nama}</h4>
-                <p><strong>Jurusan:</strong> {mahasiswa.jurusan}</p>
-                <p><strong>Angkatan:</strong> {mahasiswa.nim[:4] if len(mahasiswa.nim) >= 4 else 'N/A'}</p>
+                <h4 style="color: #000000;">{mahasiswa.nama}</h4>
+                <p style="color: #000000;"><strong>Jurusan:</strong> {mahasiswa.jurusan}</p>
+                <p style="color: #000000;"><strong>Angkatan:</strong> {mahasiswa.angkatan}</p>
+                {email_info}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -838,7 +1118,7 @@ class AplikasiManajemenMahasiswa:
             # Angkatan distribution
             angkatan_counts = {}
             for m in data:
-                angkatan = m.nim[:4] if len(m.nim) >= 4 else "Unknown"
+                angkatan = m.angkatan
                 angkatan_counts[angkatan] = angkatan_counts.get(angkatan, 0) + 1
             
             if angkatan_counts:
@@ -872,8 +1152,9 @@ class AplikasiManajemenMahasiswa:
             
             with col3:
                 if data:
-                    latest_nim = max(data, key=lambda x: x.nim).nim[:4] if len(data[0].nim) >= 4 else "N/A"
-                    st.metric("🆕 Angkatan Terbaru", latest_nim)
+                    dengan_email = len([m for m in data if m.email])
+                    persentase = (dengan_email / len(data)) * 100 if data else 0
+                    st.metric("📧 Memiliki Email", f"{dengan_email} ({persentase:.1f}%)")
     
     def _tambah_data(self):
         """Form tambah data mahasiswa dengan desain modern"""
@@ -887,6 +1168,8 @@ class AplikasiManajemenMahasiswa:
                                    help="Masukkan 9-12 digit angka")
                 nama = st.text_input("**👤 Nama Lengkap**", placeholder="Contoh: Azka Insan Robbani",
                                     help="Hanya huruf, spasi, titik, dan koma")
+                email = st.text_input("**📧 Email**", placeholder="Contoh: mahasiswa@example.com",
+                                     help="Email opsional untuk notifikasi")
             
             with col2:
                 jurusan = st.selectbox(
@@ -913,7 +1196,7 @@ class AplikasiManajemenMahasiswa:
             col_btn1, col_btn2, col_btn3 = st.columns([2, 1, 1])
             with col_btn1:
                 if st.button("🚀 **Simpan Data**", type="primary", use_container_width=True):
-                    self._process_tambah_data(nim, nama, jurusan, angkatan)
+                    self._process_tambah_data(nim, nama, jurusan, angkatan, email)
             
             with col_btn2:
                 if st.button("🔄 **Reset Form**", use_container_width=True):
@@ -921,9 +1204,9 @@ class AplikasiManajemenMahasiswa:
             
             with col_btn3:
                 if st.button("📋 **Template**", use_container_width=True):
-                    st.code("NIM: 24101140099\nNama: Azka Insan Robbani\nJurusan: Teknik Informatika")
+                    st.code("NIM: 24101140099\nNama: Azka Insan Robbani\nJurusan: Teknik Informatika\nEmail: azka@example.com")
     
-    def _process_tambah_data(self, nim: str, nama: str, jurusan: str, angkatan: str):
+    def _process_tambah_data(self, nim: str, nama: str, jurusan: str, angkatan: str, email: str):
         """Memproses penambahan data"""
         try:
             if not nim or not nama:
@@ -938,7 +1221,11 @@ class AplikasiManajemenMahasiswa:
                 st.error("❌ Nama hanya boleh mengandung huruf, spasi, titik, dan koma!")
                 return
             
-            mahasiswa_baru = Mahasiswa(nim=nim, nama=nama, jurusan=jurusan, angkatan=angkatan)
+            if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                st.error("❌ Format email tidak valid!")
+                return
+            
+            mahasiswa_baru = Mahasiswa(nim=nim, nama=nama, jurusan=jurusan, angkatan=angkatan, email=email)
             self.manajemen.tambah(mahasiswa_baru)
             st.session_state.data_mahasiswa = self.manajemen.get_semua()
             
@@ -988,6 +1275,7 @@ class AplikasiManajemenMahasiswa:
                         with col1:
                             nim_baru = st.text_input("NIM Baru*", value=mahasiswa.nim, max_chars=12)
                             nama_baru = st.text_input("Nama Lengkap Baru*", value=mahasiswa.nama, max_chars=50)
+                            email_baru = st.text_input("Email Baru", value=mahasiswa.email, placeholder="mahasiswa@example.com")
                         
                         with col2:
                             jurusan_baru = st.selectbox(
@@ -1015,11 +1303,11 @@ class AplikasiManajemenMahasiswa:
                                 st.rerun()
                         
                         if submitted:
-                            self._process_edit_data(nim_lama, nim_baru, nama_baru, jurusan_baru, angkatan_baru)
+                            self._process_edit_data(nim_lama, nim_baru, nama_baru, jurusan_baru, angkatan_baru, email_baru)
         else:
             st.warning("🔍 Tidak ditemukan mahasiswa dengan kriteria tersebut.")
     
-    def _process_edit_data(self, nim_lama: str, nim_baru: str, nama_baru: str, jurusan_baru: str, angkatan_baru: str):
+    def _process_edit_data(self, nim_lama: str, nim_baru: str, nama_baru: str, jurusan_baru: str, angkatan_baru: str, email_baru: str):
         """Memproses edit data"""
         try:
             if not nim_baru or not nama_baru:
@@ -1034,7 +1322,11 @@ class AplikasiManajemenMahasiswa:
                 st.error("❌ Nama hanya boleh mengandung huruf, spasi, titik, dan koma!")
                 return
             
-            mahasiswa_baru = Mahasiswa(nim=nim_baru, nama=nama_baru, jurusan=jurusan_baru, angkatan=angkatan_baru)
+            if email_baru and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email_baru):
+                st.error("❌ Format email tidak valid!")
+                return
+            
+            mahasiswa_baru = Mahasiswa(nim=nim_baru, nama=nama_baru, jurusan=jurusan_baru, angkatan=angkatan_baru, email=email_baru)
             self.manajemen.edit(nim_lama, mahasiswa_baru)
             st.session_state.data_mahasiswa = self.manajemen.get_semua()
             
@@ -1111,8 +1403,8 @@ class AplikasiManajemenMahasiswa:
         with st.container(border=True):
             keyword = st.text_input(
                 "Masukkan keyword pencarian:",
-                placeholder="Cari berdasarkan NIM atau Nama...",
-                help="Anda dapat mencari berdasarkan NIM (angka) atau Nama (teks)"
+                placeholder="Cari berdasarkan NIM, Nama, atau Email...",
+                help="Anda dapat mencari berdasarkan NIM (angka), Nama (teks), atau Email"
             )
         
         if keyword:
@@ -1127,11 +1419,11 @@ class AplikasiManajemenMahasiswa:
             
             with tab1:
                 st.markdown("### 🔍 Linear Search")
-                st.caption("**Kompleksitas:** O(n) | **Keuntungan:** Dapat mencari berdasarkan NIM atau Nama")
+                st.caption("**Kompleksitas:** O(n) | **Keuntungan:** Dapat mencari berdasarkan NIM, Nama, atau Email")
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    by = st.radio("Cari berdasarkan:", ["Nama", "NIM"], horizontal=True)
+                    by = st.radio("Cari berdasarkan:", ["Nama", "NIM", "Email"], horizontal=True)
                 
                 with st.spinner("Sedang mencari..."):
                     start_time = time.time()
@@ -1247,11 +1539,13 @@ class AplikasiManajemenMahasiswa:
             cols = st.columns(2)
             for idx, m in enumerate(hasil[:6]):  # Tampilkan maksimal 6
                 with cols[idx % 2]:
+                    email_display = f"<div class='result-email'>📧 {m.email}</div>" if m.email else ""
                     st.markdown(f"""
                     <div class="result-card">
                         <div class="result-nim">{m.nim}</div>
-                        <div class="result-name">{m.nama}</div>
-                        <div class="result-major">{m.jurusan}</div>
+                        <div class="result-name" style="color: #000000;">{m.nama}</div>
+                        <div class="result-major" style="color: #000000;">{m.jurusan}</div>
+                        {email_display}
                     </div>
                     """, unsafe_allow_html=True)
             
@@ -1263,7 +1557,8 @@ class AplikasiManajemenMahasiswa:
                         df_data.append({
                             'NIM': m.nim,
                             'Nama': m.nama,
-                            'Jurusan': m.jurusan
+                            'Jurusan': m.jurusan,
+                            'Email': m.email if m.email else '-'
                         })
                     df = pd.DataFrame(df_data)
                     st.dataframe(df, use_container_width=True, hide_index=True)
@@ -1280,7 +1575,7 @@ class AplikasiManajemenMahasiswa:
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                by = st.selectbox("**Urutkan berdasarkan:**", ["NIM", "Nama"])
+                by = st.selectbox("**Urutkan berdasarkan:**", ["NIM", "Nama", "Email"])
             
             with col2:
                 order = st.selectbox("**Urutan:**", ["Ascending (A-Z/0-9)", "Descending (Z-A/9-0)"])
@@ -1358,7 +1653,8 @@ class AplikasiManajemenMahasiswa:
                     df_data.append({
                         'NIM': m.nim,
                         'Nama': m.nama,
-                        'Jurusan': m.jurusan
+                        'Jurusan': m.jurusan,
+                        'Email': m.email if m.email else '-'
                     })
                 
                 df = pd.DataFrame(df_data)
@@ -1366,13 +1662,21 @@ class AplikasiManajemenMahasiswa:
             
             with tab_chart:
                 # Visualisasi pengurutan
-                values = [m.nim if by == 'NIM' else m.nama for m in hasil]
+                values = []
+                for m in hasil:
+                    if by == 'NIM':
+                        values.append(m.nim)
+                    elif by == 'Nama':
+                        values.append(m.nama)
+                    else:  # Email
+                        values.append(m.email if m.email else "No Email")
+                
                 indices = list(range(len(values)))
                 
                 fig = go.Figure(data=[
                     go.Bar(
                         x=indices,
-                        y=values if by == 'NIM' else [1] * len(values),
+                        y=[1] * len(values),  # Untuk visualisasi, gunakan nilai konstan
                         text=values,
                         marker_color='#4361EE',
                         textposition='outside'
@@ -1382,7 +1686,7 @@ class AplikasiManajemenMahasiswa:
                 fig.update_layout(
                     title=f"Hasil Pengurutan Berdasarkan {by}",
                     xaxis_title="Posisi",
-                    yaxis_title=by,
+                    yaxis_title="Data",
                     height=400
                 )
                 
@@ -1421,8 +1725,7 @@ class AplikasiManajemenMahasiswa:
                 # Angkatan distribution
                 angkatan_counts = {}
                 for m in data:
-                    angkatan = m.nim[:4] if len(m.nim) >= 4 else "Unknown"
-                    angkatan_counts[angkatan] = angkatan_counts.get(angkatan, 0) + 1
+                    angkatan_counts[m.angkatan] = angkatan_counts.get(m.angkatan, 0) + 1
                 
                 fig2 = px.bar(
                     x=list(angkatan_counts.keys()),
@@ -1440,9 +1743,8 @@ class AplikasiManajemenMahasiswa:
             # Create timeline data
             timeline_data = []
             for m in data:
-                angkatan = m.nim[:4] if len(m.nim) >= 4 else "2024"
                 timeline_data.append({
-                    'Tahun': int(angkatan),
+                    'Tahun': int(m.angkatan),
                     'Nama': m.nama,
                     'Jurusan': m.jurusan,
                     'NIM': m.nim
@@ -1482,16 +1784,184 @@ class AplikasiManajemenMahasiswa:
             with insights_col2:
                 # Additional insights
                 if data:
+                    # Email statistics
+                    dengan_email = len([m for m in data if m.email])
+                    persentase = (dengan_email / len(data)) * 100
+                    st.metric("📧 Dengan Email", f"{dengan_email} ({persentase:.1f}%)")
+                    
                     # Find most common first name
                     first_names = [m.nama.split()[0] for m in data if m.nama]
                     if first_names:
                         most_common_name = max(set(first_names), key=first_names.count)
                         st.metric("👤 Nama Depan Terbanyak", most_common_name)
+    
+    def _email_page(self):
+        """Halaman untuk mengirim email data mahasiswa"""
+        st.markdown("## 📧 Kirim Data Mahasiswa via Email")
+        
+        with st.container(border=True):
+            st.markdown("""
+            <div class="info-card">
+                <h3>📋 Informasi Pengiriman Email</h3>
+                <p>Kirim data mahasiswa dalam format HTML atau CSV melalui email.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Form pengiriman email
+        with st.form("form_email"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                penerima = st.text_input("**📨 Email Penerima**", 
+                                        placeholder="contoh@email.com",
+                                        help="Masukkan alamat email penerima")
+                subjek = st.text_input("**📝 Subjek Email**", 
+                                      value="Laporan Data Mahasiswa",
+                                      help="Subjek untuk email yang akan dikirim")
+            
+            with col2:
+                jenis_laporan = st.selectbox(
+                    "**📄 Format Laporan**",
+                    ["HTML Report", "CSV Attachment", "Kedua-duanya"]
+                )
+                
+                pilihan_data = st.selectbox(
+                    "**📊 Data yang Dikirim**",
+                    ["Semua Data", "Data dengan Email", "Pilih Manual"]
+                )
+            
+            # Jika memilih manual, tampilkan pilihan mahasiswa
+            if pilihan_data == "Pilih Manual":
+                st.markdown("### 👥 Pilih Mahasiswa")
+                data = self.manajemen.get_semua()
+                
+                if data:
+                    # Tampilkan checkbox untuk setiap mahasiswa
+                    selected_mahasiswa = []
+                    cols = st.columns(2)
                     
-                    # NIM patterns
-                    nim_lengths = [len(m.nim) for m in data]
-                    avg_nim_len = sum(nim_lengths) / len(nim_lengths)
-                    st.metric("🔢 Rata-rata Panjang NIM", f"{avg_nim_len:.1f} digit")
+                    for idx, m in enumerate(data):
+                        with cols[idx % 2]:
+                            if st.checkbox(f"{m.nim} - {m.nama}", key=f"mahasiswa_{idx}"):
+                                selected_mahasiswa.append(m)
+                    
+                    st.info(f"📋 Dipilih: {len(selected_mahasiswa)} mahasiswa")
+                else:
+                    st.warning("📭 Tidak ada data mahasiswa.")
+            
+            # Custom message
+            pesan_tambahan = st.text_area("**💬 Pesan Tambahan**",
+                                         placeholder="Tambahkan pesan khusus untuk email...",
+                                         height=100)
+            
+            # Submit button
+            col_btn1, col_btn2 = st.columns([3, 1])
+            with col_btn1:
+                submitted = st.form_submit_button("🚀 **Kirim Email**", type="primary", use_container_width=True)
+            with col_btn2:
+                if st.form_submit_button("🔄 **Reset**", use_container_width=True):
+                    st.rerun()
+            
+            if submitted:
+                self._process_email(penerima, subjek, jenis_laporan, pilihan_data, 
+                                   selected_mahasiswa if pilihan_data == "Pilih Manual" else None, 
+                                   pesan_tambahan)
+    
+    def _process_email(self, penerima: str, subjek: str, jenis_laporan: str, 
+                      pilihan_data: str, mahasiswa_pilihan: List[Mahasiswa] = None, 
+                      pesan_tambahan: str = ""):
+        """Memproses pengiriman email"""
+        try:
+            # Validasi input
+            if not penerima:
+                st.error("❌ Email penerima wajib diisi!")
+                return
+            
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', penerima):
+                st.error("❌ Format email penerima tidak valid!")
+                return
+            
+            # Siapkan data berdasarkan pilihan
+            data = self.manajemen.get_semua()
+            
+            if pilihan_data == "Semua Data":
+                data_kirim = data
+            elif pilihan_data == "Data dengan Email":
+                data_kirim = [m for m in data if m.email]
+            elif pilihan_data == "Pilih Manual" and mahasiswa_pilihan:
+                data_kirim = mahasiswa_pilihan
+            else:
+                st.error("❌ Tidak ada data yang dipilih untuk dikirim!")
+                return
+            
+            if not data_kirim:
+                st.warning("⚠️ Tidak ada data yang akan dikirim!")
+                return
+            
+            # Progress bar
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            status_text.text("🔄 Menyiapkan data...")
+            progress_bar.progress(20)
+            
+            # Siapkan lampiran jika diperlukan
+            lampiran_path = None
+            
+            if jenis_laporan in ["CSV Attachment", "Kedua-duanya"]:
+                # Generate CSV report
+                csv_path = self.email_handler.generate_csv_report(data_kirim, "data_mahasiswa.csv")
+                lampiran_path = csv_path
+            
+            status_text.text("🔄 Membuat laporan...")
+            progress_bar.progress(50)
+            
+            # Generate HTML content
+            html_content = self.email_handler.generate_html_report(data_kirim, subjek)
+            
+            # Tambahkan pesan tambahan jika ada
+            if pesan_tambahan:
+                html_content = html_content.replace(
+                    '<div class="info">',
+                    f'<div class="info"><p><strong>Pesan Khusus:</strong> {pesan_tambahan}</p>'
+                )
+            
+            status_text.text("🔄 Mengirim email...")
+            progress_bar.progress(80)
+            
+            # Kirim email
+            success = self.email_handler.kirim_email(penerima, subjek, html_content, lampiran_path)
+            
+            if success:
+                progress_bar.progress(100)
+                status_text.text("✅ Email berhasil dikirim!")
+                
+                # Bersihkan file temp
+                if lampiran_path and os.path.exists(lampiran_path):
+                    os.remove(lampiran_path)
+                
+                st.success(f"✅ Email berhasil dikirim ke **{penerima}**!")
+                st.balloons()
+                
+                # Tampilkan preview
+                with st.expander("👁️ Preview Email"):
+                    st.markdown("### 📧 Preview Email")
+                    col_preview1, col_preview2 = st.columns(2)
+                    with col_preview1:
+                        st.info(f"**Penerima:** {penerima}")
+                        st.info(f"**Subjek:** {subjek}")
+                    with col_preview2:
+                        st.info(f"**Jumlah Data:** {len(data_kirim)}")
+                        st.info(f"**Format:** {jenis_laporan}")
+                    
+                    # Tampilkan preview HTML
+                    st.markdown("### 📄 Preview Konten")
+                    st.components.v1.html(html_content, height=600, scrolling=True)
+            else:
+                st.error("❌ Gagal mengirim email. Periksa konfigurasi email Anda.")
+            
+        except Exception as e:
+            st.error(f"❌ Terjadi kesalahan: {str(e)}")
     
     def _analisis_kompleksitas(self):
         """Halaman analisis kompleksitas algoritma"""
@@ -1896,6 +2366,24 @@ class AplikasiManajemenMahasiswa:
             margin: 0.2rem 0;
         }
         
+        /* Info card untuk email */
+        .info-card {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid #90caf9;
+        }
+        
+        .info-card h3 {
+            color: #1565c0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-card p {
+            color: #424242;
+        }
+        
         /* Login card */
         .glass-card {
             background: rgba(255, 255, 255, 0.95); /* PERUBAHAN: lebih opaque untuk kontras */
@@ -2001,6 +2489,12 @@ class AplikasiManajemenMahasiswa:
         .result-major {
             color: #7f8c8d;
             font-size: 0.85rem;
+        }
+        
+        .result-email {
+            color: #4CAF50;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
         }
         
         /* Warning card */
@@ -2286,37 +2780,37 @@ class AplikasiManajemenMahasiswa:
 def inisialisasi_data_contoh():
     """Menginisialisasi data mahasiswa contoh"""
     data_contoh = [
-        ("24101140099", "Azka Insan Robbani"),
-        ("241011401958", "Bagus ardiansyah"),
-        ("241011401713", "Fathur Rachman"),
-        ("241011400087", "Tumpal Sinaga"),
-        ("241011401650", "Vina Aulia"),
-        ("241011400103", "Satria Apriza Fajar"),
-        ("241011400085", "Davrielle saddad"),
-        ("241012402295", "JANDRI HARTAT GEA"),
-        ("241011400094", "Walman pangaribuan"),
-        ("241011400075", "Rafli"),
-        ("241011401866", "Jason Cornelius Chandra"),
-        ("241011402663", "Ahmad Rasyid"),
-        ("241011400068", "Ferda Ayi Sukaesih Sutanto"),
-        ("241011402896", "M. Ikram Maulana"),
-        ("241011400091", "Nazril Supriyadi"),
-        ("241011402829", "Ade jahwa aulia"),
-        ("241011400092", "Maulana ikhsan fadhillah"),
-        ("241011400089", "Dea Amellya"),
-        ("241011402427", "Risqi Eko Trianto"),
-        ("241011400098", "Rizki Ramadani"),
-        ("241011402197", "muhammad alif fajriansyah"),
-        ("241011400097", "dzaki ramadhan"),
-        ("241011400076", "Servatius Hasta Kristanto"),
-        ("241011401761", "Ahmad Firdaus"),
-        ("241011402338", "Ade sofyan"),
-        ("241011402835", "Dimas Ahmad"),
-        ("241011401470", "Adam Darmansyah"),
-        ("241011400079", "Muhammad Noer Alam P"),
-        ("241011403269", "Azmi Al Fahriza"),
-        ("241011402053", "Ahmad Irfan"),
-        ("241011402382", "Gregorius Gilbert Ieli Sarjana")
+        ("241011400099", "Azka Insan Robbani", "azka@example.com"),
+        ("241011401958", "Bagus ardiansyah", "bagus@example.com"),
+        ("241011401713", "Fathur Rachman", "fathur@example.com"),
+        ("241011400087", "Tumpal Sinaga", "tumpal@example.com"),
+        ("241011401650", "Vina Aulia", "vina@example.com"),
+        ("241011400103", "Satria Apriza Fajar", "satria@example.com"),
+        ("241011400085", "Davrielle saddad", "davrielle@example.com"),
+        ("241012402295", "JANDRI HARTAT GEA", "jandri@example.com"),
+        ("241011400094", "Walman pangaribuan", "walman@example.com"),
+        ("241011400075", "Rafli", "rafli@example.com"),
+        ("241011401866", "Jason Cornelius Chandra", "jason@example.com"),
+        ("241011402663", "Ahmad Rasyid", "ahmad@example.com"),
+        ("241011400068", "Ferda Ayi Sukaesih Sutanto", "ferda@example.com"),
+        ("241011402896", "M. Ikram Maulana", "ikram@example.com"),
+        ("241011400091", "Nazril Supriyadi", "nazril@example.com"),
+        ("241011402829", "Ade jahwa aulia", "ade@example.com"),
+        ("241011400092", "Maulana ikhsan fadhillah", "maulana@example.com"),
+        ("241011400089", "Dea Amellya", "dea@example.com"),
+        ("241011402427", "Risqi Eko Trianto", "risqi@example.com"),
+        ("241011400098", "Rizki Ramadani", "rizki@example.com"),
+        ("241011402197", "muhammad alif fajriansyah", "alif@example.com"),
+        ("241011400097", "dzaki ramadhan", "dzaki@example.com"),
+        ("241011400076", "Servatius Hasta Kristanto", "servatius@example.com"),
+        ("241011401761", "Ahmad Firdaus", "firdaus@example.com"),
+        ("241011402338", "Ade sofyan", "ade_sofyan@example.com"),
+        ("241011402835", "Dimas Ahmad", "dimas@example.com"),
+        ("241011401470", "Adam Darmansyah", "adam@example.com"),
+        ("241011400079", "Muhammad Noer Alam P", "noer@example.com"),
+        ("241011403269", "Azmi Al Fahriza", "azmi@example.com"),
+        ("241011402053", "Ahmad Irfan", "irfan@example.com"),
+        ("241011402382", "Gregorius Gilbert Ieli Sarjana", "gregorius@example.com")
     ]
     
     return data_contoh
@@ -2333,11 +2827,11 @@ if __name__ == "__main__":
         # Tambahkan data contoh jika file belum ada
         if not os.path.exists('data_mahasiswa.json'):
             data_contoh = inisialisasi_data_contoh()
-            for nim, nama in data_contoh:
+            for nim, nama, email in data_contoh:
                 try:
                     # Generate random angkatan between 2020-2024
                     angkatan = str(random.randint(2020, 2024))
-                    mahasiswa = Mahasiswa(nim=nim, nama=nama, angkatan=angkatan)
+                    mahasiswa = Mahasiswa(nim=nim, nama=nama, angkatan=angkatan, email=email)
                     app.manajemen.tambah(mahasiswa)
                 except Exception as e:
                     print(f"Error menambahkan {nama}: {str(e)}")
