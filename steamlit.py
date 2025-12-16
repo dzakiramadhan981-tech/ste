@@ -2295,7 +2295,7 @@ def inisialisasi_data_contoh():
         ("241011400085", "Davrielle saddad"),
         ("241012402295", "JANDRI HARTAT GEA"),
         ("241011400094", "Walman pangaribuan"),
-        ("24011400075", "Rafli"),
+        ("241011400075", "Rafli"),
         ("241011401866", "Jason Cornelius Chandra"),
         ("241011402663", "Ahmad Rasyid"),
         ("241011400068", "Ferda Ayi Sukaesih Sutanto"),
